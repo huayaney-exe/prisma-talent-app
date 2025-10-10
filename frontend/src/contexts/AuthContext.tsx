@@ -14,6 +14,7 @@ interface AuthContextType {
   session: Session | null
   isLoading: boolean
   isAdmin: boolean
+  isClient: boolean
   signIn: (email: string, password: string) => Promise<void>
   signOut: () => Promise<void>
 }
@@ -45,6 +46,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [session, setSession] = useState<Session | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [isClient, setIsClient] = useState(false)
 
   // Check if user is admin by querying prisma_admins table
   useEffect(() => {
@@ -75,6 +77,36 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
 
     checkAdminStatus()
+  }, [user?.id])
+
+  // Check if user is client by querying companies table
+  useEffect(() => {
+    const checkClientStatus = async () => {
+      if (!user?.id) {
+        setIsClient(false)
+        return
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('companies')
+          .select('id, company_name')
+          .eq('primary_contact_auth_id', user.id)
+          .single()
+
+        if (error) {
+          console.error('Error checking client status:', error)
+          setIsClient(false)
+        } else {
+          setIsClient(!!data) // User is client if linked to a company
+        }
+      } catch (error) {
+        console.error('Error querying companies for client:', error)
+        setIsClient(false)
+      }
+    }
+
+    checkClientStatus()
   }, [user?.id])
 
   // ============================================================================
@@ -157,6 +189,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     session,
     isLoading,
     isAdmin,
+    isClient,
     signIn,
     signOut,
   }

@@ -71,6 +71,22 @@ export function LeadManagementPage() {
     }
   }
 
+  const handleCreateClient = async (leadId: string) => {
+    const confirmed = confirm(
+      '¿Crear cuenta de cliente? Se enviará un email de invitación con magic link para acceder a la plataforma.'
+    )
+    if (!confirmed) return
+
+    try {
+      await leadService.convertLeadToClient(leadId)
+      alert('✅ Cuenta de cliente creada. Email de invitación enviado.')
+      await loadLeads() // Refresh list
+    } catch (error) {
+      console.error('Failed to create client:', error)
+      alert('❌ Error al crear cuenta de cliente: ' + (error as Error).message)
+    }
+  }
+
   const handleSignOut = async () => {
     await signOut()
     navigate('/admin/login')
@@ -269,7 +285,18 @@ export function LeadManagementPage() {
                               </button>
                             </>
                           )}
-                          <span className="text-gray-300">|</span>
+                          {lead.status === 'approved' && (
+                            <>
+                              <button
+                                onClick={() => handleCreateClient(lead.id)}
+                                className="text-purple hover:text-purple/80 font-semibold"
+                                title="Create client account and send magic link"
+                              >
+                                🎯 Crear Cliente
+                              </button>
+                              <span className="text-gray-300">|</span>
+                            </>
+                          )}
                           <button className="text-purple hover:text-purple/80">
                             Ver Detalles
                           </button>

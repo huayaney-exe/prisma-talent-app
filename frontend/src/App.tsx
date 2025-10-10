@@ -6,6 +6,7 @@ import { AuthProvider } from '@/contexts/AuthContext'
 import { ProtectedRoute } from '@/components/auth'
 import { LandingPage, LeadFormPage, JobListingPage, ApplicationFormPage } from '@/pages'
 import { AdminLoginPage, AdminDashboardPage, LeadManagementPage, PositionPipelinePage, CandidateReviewPage, ShortlistGeneratorPage } from '@/pages/admin'
+import { ClientLoginPage, ClientDashboardPage } from '@/pages/client'
 import { HRForm, BusinessLeaderForm } from '@/components/forms'
 
 function App() {
@@ -34,6 +35,17 @@ function App() {
               <div className="min-h-screen bg-gray-50 py-12 px-4">
                 <BusinessLeaderForm positionCode={new URLSearchParams(window.location.search).get('code') || ''} />
               </div>
+            }
+          />
+
+          {/* Client Pages */}
+          <Route path="/client/login" element={<ClientLoginPage />} />
+          <Route
+            path="/client/dashboard"
+            element={
+              <ProtectedRoute requireClient>
+                <ClientDashboardPage />
+              </ProtectedRoute>
             }
           />
 

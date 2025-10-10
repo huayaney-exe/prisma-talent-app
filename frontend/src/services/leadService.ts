@@ -122,7 +122,7 @@ export const leadService = {
    */
   async rejectLead(leadId: string) {
     try {
-      const { data, error } = await supabase
+      const { data, error} = await supabase
         .from('leads')
         .update({ status: 'rejected', updated_at: new Date().toISOString() })
         .eq('id', leadId)
@@ -133,6 +133,77 @@ export const leadService = {
       return data
     } catch (error) {
       console.error('[LeadService] Reject lead failed:', error)
+      throw new Error(getErrorMessage(error))
+    }
+  },
+
+  /**
+   * Convert lead to client (admin only)
+   * Creates company, sends magic link invitation to client
+   */
+  async convertLeadToClient(leadId: string) {
+    try {
+      // 1. Get lead data
+      const { data: lead, error: leadError } = await supabase
+        .from('leads')
+        .select('*')
+        .eq('id', leadId)
+        .single()
+
+      if (leadError) throw leadError
+      if (!lead) throw new Error('Lead not found')
+
+      // 2. Create company
+      const { data: company, error: companyError } = await supabase
+        .from('companies')
+        .insert({
+          company_name: lead.company_name,
+          primary_contact_name: lead.contact_name,
+          primary_contact_email: lead.contact_email,
+          primary_contact_phone: lead.contact_phone,
+          industry: lead.industry,
+          company_size: lead.company_size,
+          subscription_status: 'trial',
+          onboarding_completed: false,
+        })
+        .select()
+        .single()
+
+      if (companyError) throw companyError
+
+      // 3. Send magic link invitation via Supabase Auth Admin API
+      const { data: authUser, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(
+        lead.contact_email,
+        {
+          data: {
+            company_id: company.id,
+            company_name: company.company_name,
+            full_name: lead.contact_name,
+            role: 'client',
+          },
+          redirectTo: `${window.location.origin}/client/dashboard`,
+        }
+      )
+
+      if (inviteError) throw inviteError
+
+      // 4. Link auth user to company
+      const { error: linkError } = await supabase
+        .from('companies')
+        .update({ primary_contact_auth_id: authUser.user?.id })
+        .eq('id', company.id)
+
+      if (linkError) throw linkError
+
+      // 5. Update lead status
+      await this.approveLead(leadId)
+
+      return {
+        company,
+        message: 'Client account created and invitation email sent'
+      }
+    } catch (error) {
+      console.error('[LeadService] Convert lead to client failed:', error)
       throw new Error(getErrorMessage(error))
     }
   },
