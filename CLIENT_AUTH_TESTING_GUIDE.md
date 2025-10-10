@@ -49,7 +49,15 @@
 1. **You're now logged in** as a client
 2. **See your company info** and dashboard
 3. **Try clicking**: "Ir al Formulario HR"
-4. **HR Form should open** (future: will auto-fill company)
+4. **HR Form opens with company banner** ✅
+
+### Step 6: HR Form Auto-Fill (Client)
+
+1. **Company banner visible** at top: "🏢 Creando posición para: [Company Name]"
+2. **Fill out the position form** normally
+3. **Submit the form**
+4. **Position created** - automatically linked to your company
+5. **Verify in database** (see SQL below)
 
 ---
 
@@ -81,6 +89,27 @@ WHERE c.primary_contact_email = 'YOUR_EMAIL@gmail.com';
 
 **Expected**: All 3 queries return data, company has `primary_contact_auth_id` matching auth.users.id
 
+### Position Creation Verification
+
+**After Step 6** (Client creates position), verify position is linked to client company:
+
+```sql
+-- Check position was created with correct company_id
+SELECT
+  p.position_code,
+  p.position_name,
+  p.company_id,
+  c.company_name,
+  c.primary_contact_email
+FROM positions p
+JOIN companies c ON p.company_id = c.id
+WHERE c.primary_contact_email = 'YOUR_EMAIL@gmail.com'
+ORDER BY p.created_at DESC
+LIMIT 1;
+```
+
+**Expected**: Position shows with matching company_id and company_name
+
 ### Authentication Flow
 
 **Client Login** (http://localhost:3000/client/login):
@@ -95,6 +124,12 @@ WHERE c.primary_contact_email = 'YOUR_EMAIL@gmail.com';
 2. Shows welcome message
 3. Shows 4 cards: Create Position, My Positions, Company Info, Support
 4. Can click "Ir al Formulario HR"
+
+**HR Form Auto-Fill** (http://localhost:3000/hr-form):
+1. Shows company banner: "🏢 Creando posición para: [Company Name]"
+2. Banner explains position will be linked to company
+3. Form submits with company_id automatically
+4. Position created is visible only to that client ✅
 
 **Protected Routes**:
 - Try accessing `/client/dashboard` without login → Redirects to `/client/login` ✅
@@ -185,8 +220,8 @@ WHERE primary_contact_email = 'CLIENT_EMAIL@example.com';
 3. Monitor email delivery success rate
 
 ### Short Term (Next Sprint)
-1. **HR Form Auto-Fill**: Pre-fill company when client is logged in
-2. **Client Positions Page**: Show list of their positions
+1. ✅ **HR Form Auto-Fill**: Pre-fill company when client is logged in (COMPLETED)
+2. **Client Positions Page**: Show list of their positions at `/client/positions`
 3. **Email Templates**: Custom branded invitation emails
 
 ### Future Enhancements
@@ -249,6 +284,13 @@ WHERE primary_contact_email = 'CLIENT_EMAIL@example.com';
 - [ ] Shows 4 action cards
 - [ ] "Ir al Formulario HR" button works
 - [ ] "Cerrar Sesión" logs out correctly
+
+### HR Form Auto-Fill
+- [ ] Company banner visible at top when logged in as client
+- [ ] Banner shows correct company name
+- [ ] Form submission works normally
+- [ ] Created position linked to client company (verify in database)
+- [ ] Non-logged-in users see form without banner (fallback behavior)
 
 ### Security
 - [ ] Cannot access /client/dashboard without login
