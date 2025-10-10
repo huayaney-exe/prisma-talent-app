@@ -1,0 +1,11 @@
+# Public Assets Directory
+
+This directory contains static assets that are copied as-is to the build output.
+
+## Contents:
+- favicon.svg - Prisma brand favicon
+- robots.txt - SEO configuration
+
+## Note:
+Do NOT place images, fonts, or other assets here unless they need to be referenced by absolute URL.
+For imported assets (images, etc.), place them in `src/assets/` instead.

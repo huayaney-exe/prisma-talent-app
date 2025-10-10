@@ -1,0 +1,5 @@
+# Prisma Talent Platform
+User-agent: *
+Allow: /
+
+Sitemap: https://talent.prisma.com/sitemap.xml
