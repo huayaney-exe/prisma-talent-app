@@ -44,9 +44,38 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isAdmin, setIsAdmin] = useState(false)
 
-  // Check if user is admin (based on email domain or metadata)
-  const isAdmin = user?.email?.includes('@prisma') || user?.user_metadata?.role === 'admin' || false
+  // Check if user is admin by querying prisma_admins table
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      if (!user?.id) {
+        setIsAdmin(false)
+        return
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('prisma_admins')
+          .select('id, role, is_active')
+          .eq('auth_user_id', user.id)
+          .eq('is_active', true)
+          .single()
+
+        if (error) {
+          console.error('Error checking admin status:', error)
+          setIsAdmin(false)
+        } else {
+          setIsAdmin(!!data) // User is admin if record exists
+        }
+      } catch (error) {
+        console.error('Error querying prisma_admins:', error)
+        setIsAdmin(false)
+      }
+    }
+
+    checkAdminStatus()
+  }, [user?.id])
 
   // ============================================================================
   // INITIALIZE SESSION

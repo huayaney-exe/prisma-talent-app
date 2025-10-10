@@ -152,11 +152,10 @@ COMMENT ON COLUMN applicants.evaluation_notes IS 'Admin notes from qualification
 -- =============================================================================
 
 -- View for positions with applicant counts
--- Note: positions table already has applicant_count column, so we calculate and update it
 CREATE OR REPLACE VIEW positions_with_counts AS
 SELECT
   p.*,
-  COALESCE(COUNT(a.id), 0) as calculated_applicant_count
+  COUNT(a.id) as applicant_count
 FROM positions p
 LEFT JOIN applicants a ON p.id = a.position_id
 GROUP BY p.id;

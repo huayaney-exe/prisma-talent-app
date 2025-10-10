@@ -152,9 +152,8 @@ FOR DELETE
 TO authenticated
 USING (bucket_id = 'cvs' AND false);
 
--- Storage policy comments removed due to permission issues
--- COMMENT ON POLICY "cvs_insert_public" ON storage.objects IS 'Allow CV uploads from application form';
--- COMMENT ON POLICY "cvs_select_public" ON storage.objects IS 'Allow CV downloads for review';
+COMMENT ON POLICY "cvs_insert_public" ON storage.objects IS 'Allow CV uploads from application form';
+COMMENT ON POLICY "cvs_select_public" ON storage.objects IS 'Allow CV downloads for review';
 
 -- =============================================================================
 -- GRANT PERMISSIONS
