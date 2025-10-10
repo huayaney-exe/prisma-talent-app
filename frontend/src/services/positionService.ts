@@ -102,12 +102,27 @@ export const positionService = {
   },
 
   /**
-   * Get position by code (for business user form)
+   * Get position by code (for business user form) - Direct Supabase integration
    */
   async getPositionByCode(positionCode: string): Promise<Position> {
     try {
-      const response = await api.get<Position>(`/positions/code/${positionCode}`)
-      return response.data
+      const { data, error } = await supabase
+        .from('positions')
+        .select(`
+          *,
+          companies:company_id (
+            company_name,
+            primary_contact_name,
+            primary_contact_email
+          )
+        `)
+        .eq('position_code', positionCode)
+        .single()
+
+      if (error) throw error
+      if (!data) throw new Error('Position not found')
+
+      return data as Position
     } catch (error) {
       console.error('[PositionService] Get position by code failed:', error)
       throw new Error(getErrorMessage(error))
@@ -217,6 +232,34 @@ export const positionService = {
       return data
     } catch (error) {
       console.error('[PositionService] Update workflow stage failed:', error)
+      throw new Error(getErrorMessage(error))
+    }
+  },
+
+  /**
+   * Get position by ID with full details (admin only)
+   */
+  async getPositionById(positionId: string) {
+    try {
+      const { data, error } = await supabase
+        .from('positions')
+        .select(`
+          *,
+          companies:company_id (
+            company_name,
+            primary_contact_name,
+            primary_contact_email
+          )
+        `)
+        .eq('id', positionId)
+        .single()
+
+      if (error) throw error
+      if (!data) throw new Error('Position not found')
+
+      return data
+    } catch (error) {
+      console.error('[PositionService] Get position by ID failed:', error)
       throw new Error(getErrorMessage(error))
     }
   },
