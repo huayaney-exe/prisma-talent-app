@@ -2,12 +2,14 @@
  * HR Form - Create new position requisition
  * First step in the position workflow (HR Draft)
  */
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { hrFormSchema } from '@/lib/validation'
 import { positionService } from '@/services/positionService'
 import { Input, Select, Button, Card, Textarea } from '@/components/ui'
+import { useAuth } from '@/contexts/AuthContext'
+import { supabase } from '@/lib/supabase'
 import type { HRFormData, Area, Seniority, ContractType, PositionType } from '@/types'
 
 // ============================================================================
@@ -48,15 +50,19 @@ const POSITION_TYPE_OPTIONS = [
 // ============================================================================
 
 export function HRForm() {
+  const { user, isClient } = useAuth()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
   const [positionCode, setPositionCode] = useState<string | null>(null)
   const [apiError, setApiError] = useState<string | null>(null)
+  const [clientCompany, setClientCompany] = useState<any>(null)
+  const [isLoadingCompany, setIsLoadingCompany] = useState(true)
 
   const {
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors },
     reset,
   } = useForm<HRFormData>({
@@ -72,6 +78,33 @@ export function HRForm() {
 
   const equityIncluded = watch('equity_included')
 
+  // Load client company data if logged in as client
+  useEffect(() => {
+    const loadClientCompany = async () => {
+      if (!user?.id || !isClient) {
+        setIsLoadingCompany(false)
+        return
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('companies')
+          .select('*')
+          .eq('primary_contact_auth_id', user.id)
+          .single()
+
+        if (error) throw error
+        setClientCompany(data)
+      } catch (error) {
+        console.error('Failed to load client company:', error)
+      } finally {
+        setIsLoadingCompany(false)
+      }
+    }
+
+    loadClientCompany()
+  }, [user?.id, isClient])
+
   // ============================================================================
   // HANDLERS
   // ============================================================================
@@ -81,7 +114,11 @@ export function HRForm() {
     setApiError(null)
 
     try {
-      const position = await positionService.createPosition(data)
+      // Pass client company_id if logged in as client
+      const position = await positionService.createPosition(
+        data,
+        clientCompany?.id
+      )
       setPositionCode(position.position_code)
       setShowSuccess(true)
       reset()
@@ -107,9 +144,38 @@ export function HRForm() {
   // RENDER
   // ============================================================================
 
+  // Show loading state while checking client status
+  if (isLoadingCompany) {
+    return (
+      <Card className="max-w-3xl mx-auto">
+        <div className="text-center py-12">
+          <div className="text-6xl mb-4">⏳</div>
+          <p className="text-gray-600">Cargando...</p>
+        </div>
+      </Card>
+    )
+  }
+
   return (
     <>
       <Card className="max-w-3xl mx-auto">
+        {/* Client Company Banner */}
+        {clientCompany && (
+          <div className="mb-6 p-4 bg-purple/10 border border-purple/20 rounded-lg">
+            <div className="flex items-start space-x-3">
+              <span className="text-2xl">🏢</span>
+              <div>
+                <h3 className="font-semibold text-black mb-1">
+                  Creando posición para: {clientCompany.company_name}
+                </h3>
+                <p className="text-sm text-gray-600">
+                  Esta posición se asociará automáticamente a tu empresa.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-black mb-2">
             Crear Nueva Posición

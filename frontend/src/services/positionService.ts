@@ -13,23 +13,28 @@ export const positionService = {
   /**
    * Create position (HR Form submission) - Direct Supabase integration
    */
-  async createPosition(data: HRFormData): Promise<Position> {
+  async createPosition(data: HRFormData, companyId?: string): Promise<Position> {
     try {
-      // Get company_id from first company (will be replaced with auth context)
-      const { data: company } = await supabase
-        .from('companies')
-        .select('id')
-        .limit(1)
-        .single()
+      let finalCompanyId = companyId
 
-      if (!company) {
-        throw new Error('No company found. Please ensure company exists in database.')
+      // If no company_id provided, get first company (fallback for non-client users)
+      if (!finalCompanyId) {
+        const { data: company } = await supabase
+          .from('companies')
+          .select('id')
+          .limit(1)
+          .single()
+
+        if (!company) {
+          throw new Error('No company found. Please ensure company exists in database.')
+        }
+        finalCompanyId = company.id
       }
 
       const { data: position, error } = await supabase
         .from('positions')
         .insert({
-          company_id: company.id,
+          company_id: finalCompanyId,
           position_name: data.position_name,
           area: data.area,
           seniority: data.seniority,
