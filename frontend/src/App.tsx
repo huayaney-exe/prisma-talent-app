@@ -5,7 +5,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { ProtectedRoute } from '@/components/auth'
 import { LandingPage, LeadFormPage, JobListingPage, ApplicationFormPage } from '@/pages'
-import { AdminLoginPage, AdminDashboardPage, LeadManagementPage, PositionPipelinePage, JobDescriptionEditorPage, CandidateReviewPage, ShortlistGeneratorPage } from '@/pages/admin'
+import { AdminLoginPage, AdminDashboardPage, LeadManagementPage, PositionPipelinePage, CandidateReviewPage, ShortlistGeneratorPage } from '@/pages/admin'
 import { HRForm, BusinessLeaderForm } from '@/components/forms'
 
 function App() {
@@ -63,14 +63,15 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route
+          {/* Temporarily disabled - missing @tiptap dependencies */}
+          {/* <Route
             path="/admin/positions/:code/edit"
             element={
               <ProtectedRoute requireAdmin>
                 <JobDescriptionEditorPage />
               </ProtectedRoute>
             }
-          />
+          /> */}
           <Route
             path="/admin/candidates"
             element={
