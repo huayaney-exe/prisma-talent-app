@@ -92,7 +92,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           .from('companies')
           .select('id, company_name')
           .eq('primary_contact_auth_id', user.id)
-          .single()
+          .maybeSingle() // Allow 0 or 1 results (admins won't have companies)
 
         if (error) {
           console.error('Error checking client status:', error)
