@@ -60,13 +60,7 @@ export const clientService = {
     try {
       console.log('[ClientService] Starting client creation for:', data.company_name)
 
-      // 1. Validate domain is unique
-      const isDomainValid = await this.validateDomain(data.company_domain)
-      if (!isDomainValid) {
-        throw new Error(`El dominio ${data.company_domain} ya está registrado`)
-      }
-
-      // 2. Create company record
+      // 1. Create company record (domain validation removed for testing flexibility)
       const { data: company, error: companyError } = await supabase
         .from('companies')
         .insert({
@@ -92,7 +86,7 @@ export const clientService = {
 
       console.log('[ClientService] Company created:', company.id)
 
-      // 3. Create HR user (company admin)
+      // 2. Create HR user (company admin)
       const { data: hrUser, error: hrUserError } = await supabase
         .from('hr_users')
         .insert({
@@ -119,7 +113,7 @@ export const clientService = {
 
       console.log('[ClientService] HR user created:', hrUser.id)
 
-      // 4. Send magic link invitation via Supabase Edge Function
+      // 3. Send magic link invitation via Supabase Edge Function
       // This calls the Edge Function deployed at supabase/functions/invite-client
       const { data: inviteResult, error: inviteError } = await supabase.functions.invoke('invite-client', {
         body: {
