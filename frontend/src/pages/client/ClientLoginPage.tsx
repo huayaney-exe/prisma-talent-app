@@ -21,7 +21,7 @@ export function ClientLoginPage() {
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `${window.location.origin}/client/dashboard`,
+          emailRedirectTo: `${import.meta.env.VITE_APP_URL}/client/dashboard`,
         },
       })
 

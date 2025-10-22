@@ -24,28 +24,36 @@ export function AdminDashboardPage() {
 
   const dashboardSections = [
     {
+      title: 'New Business Client',
+      description: 'Crear nueva cuenta de cliente empresarial directamente',
+      icon: '🏢',
+      path: '/admin/clients/new',
+      color: 'bg-purple',
+      textColor: 'text-purple',
+    },
+    {
       title: 'Lead Management',
       description: 'Gestionar solicitudes entrantes y aprobar nuevos clientes',
       icon: '📋',
       path: '/admin/leads',
-      color: 'bg-purple',
-      textColor: 'text-purple',
+      color: 'bg-cyan',
+      textColor: 'text-cyan',
     },
     {
       title: 'Position Pipeline',
       description: 'Ver y gestionar todas las posiciones activas',
       icon: '🎯',
       path: '/admin/positions',
-      color: 'bg-cyan',
-      textColor: 'text-cyan',
+      color: 'bg-pink',
+      textColor: 'text-pink',
     },
     {
       title: 'Candidate Review',
       description: 'Calificar candidatos y revisar aplicaciones',
       icon: '👥',
       path: '/admin/candidates',
-      color: 'bg-pink',
-      textColor: 'text-pink',
+      color: 'bg-gray-700',
+      textColor: 'text-gray-700',
     },
   ]
 
