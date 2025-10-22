@@ -58,10 +58,10 @@ class Settings(BaseSettings):
     # Admin
     default_admin_email: EmailStr = "admin@getprisma.io"
 
-    # Frontend URLs
-    frontend_url: str = "https://talent.getprisma.io"
-    admin_dashboard_url: str = "https://talent.getprisma.io/admin"
-    client_portal_url: str = "https://talent.getprisma.io/portal"
+    # Frontend URLs (should be set via environment variables)
+    frontend_url: str = "http://localhost:3000"
+    admin_dashboard_url: str = "http://localhost:3000/admin"
+    client_portal_url: str = "http://localhost:3000/client/dashboard"
 
     # Optional services
     sentry_dsn: str = ""

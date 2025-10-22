@@ -297,7 +297,10 @@ export function LeadManagementPage() {
                               <span className="text-gray-300">|</span>
                             </>
                           )}
-                          <button className="text-purple hover:text-purple/80">
+                          <button
+                            onClick={() => navigate(`/admin/leads/${lead.id}`)}
+                            className="text-purple hover:text-purple/80"
+                          >
                             Ver Detalles
                           </button>
                         </div>

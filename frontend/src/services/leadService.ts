@@ -98,6 +98,25 @@ export const leadService = {
   },
 
   /**
+   * Get lead by ID (admin only)
+   */
+  async getLeadById(leadId: string) {
+    try {
+      const { data, error } = await supabase
+        .from('leads')
+        .select('*')
+        .eq('id', leadId)
+        .single()
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      console.error('[LeadService] Get lead by ID failed:', error)
+      throw new Error(getErrorMessage(error))
+    }
+  },
+
+  /**
    * Approve lead (admin only)
    */
   async approveLead(leadId: string) {
@@ -139,7 +158,7 @@ export const leadService = {
 
   /**
    * Convert lead to client (admin only)
-   * Creates company, sends magic link invitation to client
+   * Creates company via backend API, sends magic link invitation to client
    */
   async convertLeadToClient(leadId: string) {
     try {
@@ -153,54 +172,45 @@ export const leadService = {
       if (leadError) throw leadError
       if (!lead) throw new Error('Lead not found')
 
-      // 2. Create company
-      const { data: company, error: companyError } = await supabase
-        .from('companies')
-        .insert({
+      // 2. Get auth token
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('No active session')
+
+      // 3. Extract domain from email
+      const domain = lead.contact_email.split('@')[1] || ''
+
+      // 4. Call backend API to create company and send invitation
+      // Backend handles company creation, HR user creation, and auth invitation
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/clients/invite`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          email: lead.contact_email,
           company_name: lead.company_name,
-          primary_contact_name: lead.contact_name,
-          primary_contact_email: lead.contact_email,
-          primary_contact_phone: lead.contact_phone,
+          company_domain: domain,
+          full_name: lead.contact_name,
+          contact_phone: lead.contact_phone,
+          contact_position: lead.contact_position,
           industry: lead.industry,
           company_size: lead.company_size,
-          subscription_status: 'trial',
-          onboarding_completed: false,
-        })
-        .select()
-        .single()
+        }),
+      })
 
-      if (companyError) throw companyError
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }))
+        throw new Error(errorData.detail || 'Failed to create client account')
+      }
 
-      // 3. Send magic link invitation via Supabase Auth Admin API
-      const { data: authUser, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(
-        lead.contact_email,
-        {
-          data: {
-            company_id: company.id,
-            company_name: company.company_name,
-            full_name: lead.contact_name,
-            role: 'client',
-          },
-          redirectTo: `${window.location.origin}/client/dashboard`,
-        }
-      )
+      const result = await response.json()
 
-      if (inviteError) throw inviteError
-
-      // 4. Link auth user to company
-      const { error: linkError } = await supabase
-        .from('companies')
-        .update({ primary_contact_auth_id: authUser.user?.id })
-        .eq('id', company.id)
-
-      if (linkError) throw linkError
-
-      // 5. Update lead status
+      // 5. Update lead status to approved
       await this.approveLead(leadId)
 
       return {
-        company,
-        message: 'Client account created and invitation email sent'
+        message: result.message || 'Client account created and invitation email sent',
       }
     } catch (error) {
       console.error('[LeadService] Convert lead to client failed:', error)
