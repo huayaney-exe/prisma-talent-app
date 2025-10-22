@@ -21,13 +21,11 @@ SET value = 'https://talent-platform.vercel.app',
 WHERE key = 'frontend_url';
 
 -- If app_config row doesn't exist, insert it
-INSERT INTO app_config (key, value, description, created_at, updated_at)
+INSERT INTO app_config (key, value, description)
 VALUES (
   'frontend_url',
   'https://talent-platform.vercel.app',
-  'Production frontend URL for email links and redirects',
-  NOW(),
-  NOW()
+  'Production frontend URL for email links and redirects'
 )
 ON CONFLICT (key) DO UPDATE
 SET value = EXCLUDED.value,
@@ -74,26 +72,22 @@ LIMIT 5;
 -- ============================================================================
 
 -- Add API URL if using separate backend (currently not needed - Pure Supabase)
--- INSERT INTO app_config (key, value, description, created_at, updated_at)
+-- INSERT INTO app_config (key, value, description)
 -- VALUES (
 --   'api_url',
 --   'https://api.prisma.pe',
---   'Production API URL',
---   NOW(),
---   NOW()
+--   'Production API URL'
 -- )
 -- ON CONFLICT (key) DO UPDATE
 -- SET value = EXCLUDED.value,
 --     updated_at = NOW();
 
 -- Add support email
-INSERT INTO app_config (key, value, description, created_at, updated_at)
+INSERT INTO app_config (key, value, description)
 VALUES (
   'support_email',
   'support@getprisma.io',
-  'Support contact email',
-  NOW(),
-  NOW()
+  'Support contact email'
 )
 ON CONFLICT (key) DO UPDATE
 SET value = EXCLUDED.value,
