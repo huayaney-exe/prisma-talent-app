@@ -2,7 +2,24 @@
 -- Setup RLS Policies for Resumes Storage Bucket
 -- Date: 2025-10-22
 -- Purpose: Configure secure access policies for resume file uploads
+-- Status: ✅ COMPLETED VIA DASHBOARD UI (2025-10-22)
 -- ============================================================================
+
+-- ⚠️ IMPORTANT: THIS SQL CANNOT BE RUN DIRECTLY IN SQL EDITOR
+-- ERROR: "42501: must be owner of relation objects"
+-- REASON: storage.objects is owned by supabase_storage_admin, not postgres role
+-- SOLUTION: Use Supabase Dashboard → Storage → Policies UI instead
+
+-- ============================================================================
+-- ACTUAL METHOD USED: Supabase Dashboard Storage UI
+-- ============================================================================
+-- 1. Go to: https://supabase.com/dashboard/project/[project-id]/storage/policies
+-- 2. Select bucket: "resumes"
+-- 3. Click "New Policy" for each policy below
+-- 4. Enter policy name, operation, role, and definition
+-- 5. Review generated SQL, then save
+
+-- This SQL file serves as REFERENCE DOCUMENTATION for the policies created
 
 -- PREREQUISITE: The 'resumes' bucket must already exist in Supabase Storage
 -- Create bucket via Dashboard: Storage → New Bucket → Name: "resumes", Public: YES
