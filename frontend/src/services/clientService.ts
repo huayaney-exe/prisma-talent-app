@@ -119,18 +119,20 @@ export const clientService = {
 
       console.log('[ClientService] HR user created:', hrUser.id)
 
-      // 4. Send magic link invitation via Supabase RPC function
-      // This calls the SQL function we created in migration 024
-      const { data: inviteResult, error: inviteError } = await supabase.rpc('invite_client', {
-        p_email: data.primary_contact_email.toLowerCase(),
-        p_company_id: company.id,
-        p_company_name: data.company_name,
-        p_hr_user_id: hrUser.id,
-        p_full_name: data.primary_contact_name,
+      // 4. Send magic link invitation via Supabase Edge Function
+      // This calls the Edge Function deployed at supabase/functions/invite-client
+      const { data: inviteResult, error: inviteError } = await supabase.functions.invoke('invite-client', {
+        body: {
+          email: data.primary_contact_email.toLowerCase(),
+          company_id: company.id,
+          company_name: data.company_name,
+          hr_user_id: hrUser.id,
+          full_name: data.primary_contact_name,
+        }
       })
 
       if (inviteError) {
-        console.error('[ClientService] Invitation RPC error:', inviteError)
+        console.error('[ClientService] Invitation Edge Function error:', inviteError)
         throw new Error(`Failed to send invitation: ${inviteError.message}`)
       }
 
