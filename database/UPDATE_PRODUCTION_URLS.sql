@@ -58,14 +58,15 @@ ORDER BY key;
 SELECT
   email_type,
   recipient_email,
-  content->>'redirect_url' as redirect_url,
-  created_at
+  email_content,
+  sent_at
 FROM email_communications
-WHERE created_at > NOW() - INTERVAL '1 hour'
-ORDER BY created_at DESC
+WHERE sent_at > NOW() - INTERVAL '24 hours'
+ORDER BY sent_at DESC
 LIMIT 5;
 
--- Email links should contain the production URL, not localhost:3000
+-- Email content should contain the production URL, not localhost:3000
+-- Check for: https://talent-platform.vercel.app in email_content
 
 -- ============================================================================
 -- ADDITIONAL CONFIGURATION (Optional)

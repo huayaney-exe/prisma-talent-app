@@ -45,13 +45,13 @@ COMMENT ON POLICY "resumes_public_upload" ON storage.objects IS
   'Allows anonymous users to upload resume files during job application. No authentication required.';
 
 -- ============================================================================
--- POLICY 3: Admin-Only Update/Delete
--- Purpose: Only Prisma admins can delete or update resume files
--- Use case: Admin cleanup, removing inappropriate content
+-- POLICY 3a: Admin-Only Update
+-- Purpose: Only Prisma admins can update resume file metadata
+-- Use case: Admin updating file properties
 -- ============================================================================
 
-CREATE POLICY "resumes_admin_manage" ON storage.objects
-  FOR UPDATE, DELETE
+CREATE POLICY "resumes_admin_update" ON storage.objects
+  FOR UPDATE
   TO authenticated
   USING (
     bucket_id = 'resumes'
@@ -62,8 +62,29 @@ CREATE POLICY "resumes_admin_manage" ON storage.objects
     )
   );
 
-COMMENT ON POLICY "resumes_admin_manage" ON storage.objects IS
-  'Only active Prisma admins can update or delete resume files. Prevents applicants from removing submissions.';
+COMMENT ON POLICY "resumes_admin_update" ON storage.objects IS
+  'Only active Prisma admins can update resume files.';
+
+-- ============================================================================
+-- POLICY 3b: Admin-Only Delete
+-- Purpose: Only Prisma admins can delete resume files
+-- Use case: Admin cleanup, removing inappropriate content
+-- ============================================================================
+
+CREATE POLICY "resumes_admin_delete" ON storage.objects
+  FOR DELETE
+  TO authenticated
+  USING (
+    bucket_id = 'resumes'
+    AND EXISTS (
+      SELECT 1 FROM prisma_admins
+      WHERE auth_user_id = auth.uid()
+      AND is_active = TRUE
+    )
+  );
+
+COMMENT ON POLICY "resumes_admin_delete" ON storage.objects IS
+  'Only active Prisma admins can delete resume files. Prevents applicants from removing submissions.';
 
 -- ============================================================================
 -- VERIFICATION
@@ -84,10 +105,11 @@ WHERE tablename = 'objects'
   AND policyname LIKE '%resumes%'
 ORDER BY policyname;
 
--- Expected output: 3 policies
--- 1. resumes_admin_manage   - authenticated - UPDATE, DELETE
--- 2. resumes_public_read    - public        - SELECT
--- 3. resumes_public_upload  - anon          - INSERT
+-- Expected output: 4 policies
+-- 1. resumes_admin_delete  - authenticated - DELETE
+-- 2. resumes_admin_update  - authenticated - UPDATE
+-- 3. resumes_public_read   - public        - SELECT
+-- 4. resumes_public_upload - anon          - INSERT
 
 -- ============================================================================
 -- TEST POLICIES
@@ -133,16 +155,18 @@ ORDER BY policyname;
 -- To remove all policies (use with caution):
 -- DROP POLICY IF EXISTS "resumes_public_read" ON storage.objects;
 -- DROP POLICY IF EXISTS "resumes_public_upload" ON storage.objects;
--- DROP POLICY IF EXISTS "resumes_admin_manage" ON storage.objects;
+-- DROP POLICY IF EXISTS "resumes_admin_update" ON storage.objects;
+-- DROP POLICY IF EXISTS "resumes_admin_delete" ON storage.objects;
 
 -- Success message
 DO $$
 BEGIN
-  RAISE NOTICE '✅ Storage policies configured for resumes bucket';
+  RAISE NOTICE '✅ Storage policies configured for resumes bucket (4 policies)';
   RAISE NOTICE '📄 Public read: Anyone with URL can view resumes';
   RAISE NOTICE '⬆️  Public upload: Anonymous users can upload during application';
-  RAISE NOTICE '🔒 Admin manage: Only Prisma admins can update/delete';
+  RAISE NOTICE '✏️  Admin update: Only Prisma admins can update file metadata';
+  RAISE NOTICE '🗑️  Admin delete: Only Prisma admins can delete files';
   RAISE NOTICE '';
   RAISE NOTICE '🧪 Test upload via frontend: /apply/:code';
-  RAISE NOTICE '🔍 Verify policies: SELECT * FROM pg_policies WHERE tablename = ''objects'';';
+  RAISE NOTICE '🔍 Verify policies: SELECT * FROM pg_policies WHERE tablename = ''objects'' AND schemaname = ''storage'';';
 END $$;
