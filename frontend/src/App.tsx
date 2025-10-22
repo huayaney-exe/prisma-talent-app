@@ -20,15 +20,19 @@ function App() {
           <Route path="/job/:code" element={<JobListingPage />} />
           <Route path="/apply/:code" element={<ApplicationFormPage />} />
 
-          {/* Client Dashboard Pages */}
+          {/* HR Form - Protected Route (Requires Client Authentication) */}
           <Route
             path="/hr-form"
             element={
-              <div className="min-h-screen bg-gray-50 py-12 px-4">
-                <HRForm />
-              </div>
+              <ProtectedRoute requireClient>
+                <div className="min-h-screen bg-gray-50 py-12 px-4">
+                  <HRForm />
+                </div>
+              </ProtectedRoute>
             }
           />
+
+          {/* Business Form - Public Route (Business Leaders via Email) */}
           <Route
             path="/business-form"
             element={
