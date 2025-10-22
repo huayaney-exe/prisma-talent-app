@@ -13,12 +13,14 @@ DECLARE
   email_body TEXT;
   resend_api_key TEXT;
 BEGIN
-  -- Get configuration
-  resend_api_key := current_setting('app.resend_api_key', true);
+  -- Get Resend API key from config table
+  SELECT value INTO resend_api_key
+  FROM app_config
+  WHERE key = 'resend_api_key';
 
   -- Validate API key exists
   IF resend_api_key IS NULL OR resend_api_key = '' THEN
-    RAISE EXCEPTION 'Resend API key not configured. Set app.resend_api_key in database.';
+    RAISE EXCEPTION 'Resend API key not configured. Add to app_config table.';
   END IF;
 
   -- Get email record

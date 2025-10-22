@@ -16,18 +16,29 @@ DECLARE
   redirect_url TEXT;
   supabase_url TEXT;
   service_role_key TEXT;
+  frontend_url TEXT;
   auth_user_id TEXT;
 BEGIN
-  -- Get configuration
-  supabase_url := current_setting('app.supabase_url', true);
-  service_role_key := current_setting('app.supabase_service_role_key', true);
-  redirect_url := current_setting('app.frontend_url', true) || '/client/dashboard';
+  -- Get configuration from app_config table
+  SELECT value INTO supabase_url
+  FROM app_config
+  WHERE key = 'supabase_url';
+
+  SELECT value INTO service_role_key
+  FROM app_config
+  WHERE key = 'supabase_service_role_key';
+
+  SELECT value INTO frontend_url
+  FROM app_config
+  WHERE key = 'frontend_url';
+
+  redirect_url := frontend_url || '/client/dashboard';
 
   -- Validate required config
   IF supabase_url IS NULL OR service_role_key IS NULL THEN
     RETURN jsonb_build_object(
       'success', false,
-      'error', 'Supabase configuration not set. Configure app.supabase_url and app.supabase_service_role_key.'
+      'error', 'Supabase configuration not set. Add to app_config table.'
     );
   END IF;
 
