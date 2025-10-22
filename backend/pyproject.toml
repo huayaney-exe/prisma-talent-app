@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Prisma Talent Platform - Backend API"
 authors = ["Prisma Team <hello@getprisma.io>"]
 readme = "README.md"
+package-mode = false  # Application mode - Poetry 2.0+ (not a distributable package)
 
 [tool.poetry.dependencies]
 python = "^3.11"
