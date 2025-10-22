@@ -21,11 +21,11 @@ CREATE TABLE IF NOT EXISTS app_config (
 );
 
 -- Insert configuration values
--- ⚠️ REPLACE PLACEHOLDER VALUES WITH ACTUAL KEYS!
+-- ✅ ACTUAL API KEYS CONFIGURED
 INSERT INTO app_config (key, value, description) VALUES
-  ('resend_api_key', 're_YOUR_RESEND_API_KEY_HERE', 'Resend API key for sending emails'),
+  ('resend_api_key', 're_BRrS14Bb_8td91CwXRp7ynQYjz1xnj6k2', 'Resend API key for sending emails'),
   ('supabase_url', 'https://vhjjibfblrkyfzcukqwa.supabase.co', 'Supabase project URL'),
-  ('supabase_service_role_key', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.YOUR_SERVICE_ROLE_KEY_HERE', 'Supabase service role key (Admin API)'),
+  ('supabase_service_role_key', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZoamppYmZibHJreWZ6Y3VrcXdhIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1Nzg4NjY4MSwiZXhwIjoyMDczNDYyNjgxfQ._kjiEmwKbB7D1gCOu2YDM78B51lN4EatfvQkI_JxmBU', 'Supabase service role key (Admin API)'),
   ('frontend_url', 'https://prismatalent.vercel.app', 'Frontend application URL')
 ON CONFLICT (key) DO UPDATE SET
   value = EXCLUDED.value,
