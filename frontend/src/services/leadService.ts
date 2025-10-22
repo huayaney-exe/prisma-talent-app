@@ -179,15 +179,10 @@ export const leadService = {
       // 3. Extract domain from email
       const domain = lead.contact_email.split('@')[1] || ''
 
-      // 4. Call backend API to create company and send invitation
-      // Backend handles company creation, HR user creation, and auth invitation
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/clients/invite`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({
+      // 4. Call Edge Function to create company and send invitation
+      // Edge Function handles company creation, HR user creation, and auth invitation
+      const { data: result, error: inviteError } = await supabase.functions.invoke('invite-client', {
+        body: {
           email: lead.contact_email,
           company_name: lead.company_name,
           company_domain: domain,
@@ -196,15 +191,12 @@ export const leadService = {
           contact_position: lead.contact_position,
           industry: lead.industry,
           company_size: lead.company_size,
-        }),
+        }
       })
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }))
-        throw new Error(errorData.detail || 'Failed to create client account')
+      if (inviteError || !result?.success) {
+        throw new Error(result?.error || inviteError?.message || 'Failed to create client account')
       }
-
-      const result = await response.json()
 
       // 5. Update lead status to approved
       await this.approveLead(leadId)
