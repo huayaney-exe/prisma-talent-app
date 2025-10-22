@@ -46,10 +46,12 @@ export const clientService = {
   /**
    * Create new business client directly (admin only)
    *
-   * Workflow:
-   * 1. Call backend API to validate and create company + HR user
-   * 2. Backend sends magic link invitation via service_role_key
-   * 3. Return success response
+   * Workflow (Pure Supabase - No Backend!):
+   * 1. Validate domain uniqueness
+   * 2. Create company record (Supabase direct)
+   * 3. Create HR user record (Supabase direct)
+   * 4. Send magic link via Supabase RPC function (calls Auth Admin API)
+   * 5. Return success response
    *
    * @param data - Client creation data
    * @returns Created company and user records
@@ -58,42 +60,92 @@ export const clientService = {
     try {
       console.log('[ClientService] Starting client creation for:', data.company_name)
 
-      // 1. Get auth token
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) throw new Error('No active session')
-
-      // 2. Call backend API to create company and send invitation
-      // Backend handles all validation, company creation, HR user creation, and auth invitation
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/clients/invite`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({
-          email: data.primary_contact_email,
-          company_name: data.company_name,
-          company_domain: data.company_domain,
-          full_name: data.primary_contact_name,
-          contact_phone: data.primary_contact_phone,
-          contact_position: data.primary_contact_position,
-          industry: data.industry,
-          company_size: data.company_size,
-        }),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }))
-        throw new Error(errorData.detail || 'Failed to create client account')
+      // 1. Validate domain is unique
+      const isDomainValid = await this.validateDomain(data.company_domain)
+      if (!isDomainValid) {
+        throw new Error(`El dominio ${data.company_domain} ya está registrado`)
       }
 
-      const result = await response.json()
+      // 2. Create company record
+      const { data: company, error: companyError } = await supabase
+        .from('companies')
+        .insert({
+          company_name: data.company_name,
+          company_domain: data.company_domain.toLowerCase(),
+          industry: data.industry,
+          company_size: data.company_size,
+          website_url: data.website_url,
+          linkedin_url: data.linkedin_url,
+          company_description: data.company_description,
+          primary_contact_name: data.primary_contact_name,
+          primary_contact_email: data.primary_contact_email.toLowerCase(),
+          primary_contact_phone: data.primary_contact_phone,
+          subscription_status: 'trial',
+          subscription_plan: data.subscription_plan || 'basic',
+          trial_end_date: new Date(Date.now() + (data.trial_days || 30) * 24 * 60 * 60 * 1000).toISOString(),
+          onboarding_completed: false,
+        })
+        .select()
+        .single()
 
-      console.log('[ClientService] Client created successfully:', result)
+      if (companyError) throw companyError
+
+      console.log('[ClientService] Company created:', company.id)
+
+      // 3. Create HR user (company admin)
+      const { data: hrUser, error: hrUserError } = await supabase
+        .from('hr_users')
+        .insert({
+          company_id: company.id,
+          email: data.primary_contact_email.toLowerCase(),
+          full_name: data.primary_contact_name,
+          position_title: data.primary_contact_position,
+          phone: data.primary_contact_phone,
+          role: 'company_admin',
+          is_active: true,
+          can_create_positions: true,
+          can_manage_team: true,
+          can_view_analytics: true,
+          created_by: null, // First user, self-created
+        })
+        .select()
+        .single()
+
+      if (hrUserError) {
+        // Rollback: Delete company if HR user creation fails
+        await supabase.from('companies').delete().eq('id', company.id)
+        throw hrUserError
+      }
+
+      console.log('[ClientService] HR user created:', hrUser.id)
+
+      // 4. Send magic link invitation via Supabase RPC function
+      // This calls the SQL function we created in migration 024
+      const { data: inviteResult, error: inviteError } = await supabase.rpc('invite_client', {
+        p_email: data.primary_contact_email.toLowerCase(),
+        p_company_id: company.id,
+        p_company_name: data.company_name,
+        p_hr_user_id: hrUser.id,
+        p_full_name: data.primary_contact_name,
+      })
+
+      if (inviteError) {
+        console.error('[ClientService] Invitation RPC error:', inviteError)
+        throw new Error(`Failed to send invitation: ${inviteError.message}`)
+      }
+
+      if (!inviteResult?.success) {
+        console.error('[ClientService] Invitation failed:', inviteResult)
+        throw new Error(inviteResult?.error || 'Failed to send magic link invitation')
+      }
+
+      console.log('[ClientService] Client created successfully:', inviteResult)
 
       return {
-        company: { id: result.auth_user_id }, // Backend doesn't return full company object yet
-        message: result.message || `✅ Cliente creado exitosamente! Email de invitación enviado a ${data.primary_contact_email}`,
+        company: company,
+        hr_user: hrUser,
+        auth_user: { id: inviteResult.auth_user_id },
+        message: `✅ Cliente creado exitosamente! Email de invitación enviado a ${data.primary_contact_email}`,
       }
     } catch (error) {
       console.error('[ClientService] Create client failed:', error)
