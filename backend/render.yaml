@@ -28,11 +28,17 @@ services:
         generateValue: true
       - key: RESEND_API_KEY
         sync: false
+      - key: FROM_EMAIL
+        value: noreply@luishuayaney.com
+      - key: REPLY_TO_EMAIL
+        value: luis@luishuayaney.com
+      - key: DEFAULT_ADMIN_EMAIL
+        value: luis@luishuayaney.com
       - key: ALLOWED_ORIGINS
-        value: https://talent.getprisma.io,https://www.talent.getprisma.io
+        value: https://prismatalent.vercel.app,http://localhost:3000,http://localhost:5173
       - key: FRONTEND_URL
-        value: https://talent.getprisma.io
+        value: https://prismatalent.vercel.app
       - key: ADMIN_DASHBOARD_URL
-        value: https://talent.getprisma.io/admin
+        value: https://prismatalent.vercel.app/admin
       - key: CLIENT_PORTAL_URL
-        value: https://talent.getprisma.io/portal
+        value: https://prismatalent.vercel.app/client/dashboard

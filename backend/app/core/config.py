@@ -46,17 +46,17 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
 
-    # Email (Resend)
+    # Email (Resend) - Use verified domain: luishuayaney.com
     resend_api_key: str
-    from_email: EmailStr = "hello@getprisma.io"
-    reply_to_email: EmailStr = "hello@getprisma.io"
+    from_email: EmailStr = "noreply@luishuayaney.com"
+    reply_to_email: EmailStr = "luis@luishuayaney.com"
 
     # Rate Limiting
     rate_limit_per_minute: int = 60
     rate_limit_per_hour: int = 1000
 
     # Admin
-    default_admin_email: EmailStr = "admin@getprisma.io"
+    default_admin_email: EmailStr = "luis@luishuayaney.com"
 
     # Frontend URLs (should be set via environment variables)
     frontend_url: str = "http://localhost:3000"
