@@ -291,6 +291,14 @@ export function ClientListPage() {
                 {/* Actions */}
                 <div className="flex gap-2">
                   <Button
+                    onClick={() => navigate(`/admin/positions/create/${company.id}`)}
+                    variant="primary"
+                    size="sm"
+                    className="flex-1"
+                  >
+                    Crear Posición
+                  </Button>
+                  <Button
                     onClick={() => handleDelete(company.id, company.company_name)}
                     variant="secondary"
                     size="sm"
