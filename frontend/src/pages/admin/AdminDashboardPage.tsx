@@ -32,6 +32,14 @@ export function AdminDashboardPage() {
       textColor: 'text-purple',
     },
     {
+      title: 'Client List',
+      description: 'Ver y gestionar todos los clientes empresariales',
+      icon: '🏛️',
+      path: '/admin/clients',
+      color: 'bg-purple',
+      textColor: 'text-purple',
+    },
+    {
       title: 'Lead Management',
       description: 'Gestionar solicitudes entrantes y aprobar nuevos clientes',
       icon: '📋',

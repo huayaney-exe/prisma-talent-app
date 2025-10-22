@@ -5,7 +5,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { ProtectedRoute } from '@/components/auth'
 import { LandingPage, LeadFormPage, JobListingPage, ApplicationFormPage } from '@/pages'
-import { AdminLoginPage, AdminDashboardPage, LeadManagementPage, LeadDetailPage, NewClientPage, PositionPipelinePage, PositionDetailPage, ValidateJDPage, CandidateReviewPage, ShortlistGeneratorPage } from '@/pages/admin'
+import { AdminLoginPage, AdminDashboardPage, LeadManagementPage, LeadDetailPage, NewClientPage, ClientListPage, PositionPipelinePage, PositionDetailPage, ValidateJDPage, CandidateReviewPage, ShortlistGeneratorPage } from '@/pages/admin'
 import { ClientLoginPage, ClientDashboardPage, ClientPositionsPage } from '@/pages/client'
 import { HRForm, BusinessLeaderForm } from '@/components/forms'
 
@@ -84,6 +84,14 @@ function App() {
             element={
               <ProtectedRoute requireAdmin>
                 <LeadDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/clients"
+            element={
+              <ProtectedRoute requireAdmin>
+                <ClientListPage />
               </ProtectedRoute>
             }
           />
