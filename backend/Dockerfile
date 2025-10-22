@@ -3,8 +3,8 @@
 # Build stage
 FROM python:3.11-slim as builder
 
-# Install Poetry
-RUN pip install --no-cache-dir poetry==1.7.1
+# Install Poetry (2.0+ for --without dev support)
+RUN pip install --no-cache-dir poetry>=2.0
 
 # Set working directory
 WORKDIR /app
@@ -14,7 +14,7 @@ COPY pyproject.toml poetry.lock* ./
 
 # Install dependencies
 RUN poetry config virtualenvs.create false \
-    && poetry install --no-dev --no-interaction --no-ansi
+    && poetry install --without dev --no-interaction --no-ansi
 
 # Runtime stage
 FROM python:3.11-slim
