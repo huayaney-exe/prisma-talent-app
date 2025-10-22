@@ -12,25 +12,52 @@ export const positionService = {
 
   /**
    * Create position (HR Form submission) - Direct Supabase integration
+   *
+   * Handles both authenticated clients and public form submissions:
+   * - Authenticated: created_by = hr_user.id
+   * - Public: created_by = NULL
    */
   async createPosition(data: HRFormData, companyId?: string): Promise<Position> {
     try {
+      // 1. Get current auth session (may be null for public forms)
+      const { data: { session } } = await supabase.auth.getSession()
+
+      // 2. Determine company_id
       let finalCompanyId = companyId
 
-      // If no company_id provided, get first company (fallback for non-client users)
-      if (!finalCompanyId) {
+      if (!finalCompanyId && session?.user) {
+        // Authenticated user - get their company
         const { data: company } = await supabase
           .from('companies')
           .select('id')
-          .limit(1)
-          .single()
+          .eq('primary_contact_auth_id', session.user.id)
+          .maybeSingle()
 
-        if (!company) {
-          throw new Error('No company found. Please ensure company exists in database.')
+        if (company) {
+          finalCompanyId = company.id
         }
-        finalCompanyId = company.id
       }
 
+      if (!finalCompanyId) {
+        throw new Error('Company ID is required. Please log in or contact support.')
+      }
+
+      // 3. Get hr_user_id for created_by
+      let createdBy: string | null = null
+
+      if (session?.user) {
+        // Authenticated: Find hr_user record
+        const { data: hrUser } = await supabase
+          .from('hr_users')
+          .select('id')
+          .eq('company_id', finalCompanyId)
+          .eq('email', session.user.email)
+          .maybeSingle()
+
+        createdBy = hrUser?.id || null
+      }
+
+      // 4. Insert position with smart created_by
       const { data: position, error } = await supabase
         .from('positions')
         .insert({
@@ -50,8 +77,8 @@ export const positionService = {
           critical_notes: data.critical_notes,
           workflow_stage: 'hr_completed',
           hr_completed_at: new Date().toISOString(),
-          // Will be replaced with auth.uid()
-          created_by: '00000000-0000-0000-0000-000000000000',
+          // Smart detection: NULL for public, hr_user.id for authenticated
+          created_by: createdBy,
         })
         .select()
         .single()

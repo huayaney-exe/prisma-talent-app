@@ -6,7 +6,7 @@ import { AuthProvider } from '@/contexts/AuthContext'
 import { ProtectedRoute } from '@/components/auth'
 import { LandingPage, LeadFormPage, JobListingPage, ApplicationFormPage } from '@/pages'
 import { AdminLoginPage, AdminDashboardPage, LeadManagementPage, LeadDetailPage, NewClientPage, PositionPipelinePage, PositionDetailPage, ValidateJDPage, CandidateReviewPage, ShortlistGeneratorPage } from '@/pages/admin'
-import { ClientLoginPage, ClientDashboardPage } from '@/pages/client'
+import { ClientLoginPage, ClientDashboardPage, ClientPositionsPage } from '@/pages/client'
 import { HRForm, BusinessLeaderForm } from '@/components/forms'
 
 function App() {
@@ -45,6 +45,14 @@ function App() {
             element={
               <ProtectedRoute requireClient>
                 <ClientDashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/client/positions"
+            element={
+              <ProtectedRoute requireClient>
+                <ClientPositionsPage />
               </ProtectedRoute>
             }
           />

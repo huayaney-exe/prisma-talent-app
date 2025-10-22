@@ -95,15 +95,44 @@ export const applicantService = {
    */
   async getAllApplicants(positionCode?: string, qualificationStatus?: string) {
     try {
+      // Build query with nested join for company_name
       let query = supabase
         .from('applicants')
-        .select('*, positions(position_code, position_name, company_name)')
+        .select(`
+          *,
+          positions!inner(
+            position_code,
+            position_name,
+            company_id,
+            companies(company_name)
+          )
+        `)
         .order('created_at', { ascending: false })
 
+      // Filter by position code (resolve to position_id first)
       if (positionCode) {
-        query = query.eq('positions.position_code', positionCode)
+        // Get position ID from code
+        const { data: position, error: posError } = await supabase
+          .from('positions')
+          .select('id')
+          .eq('position_code', positionCode)
+          .maybeSingle()
+
+        if (posError) {
+          console.error('[ApplicantService] Failed to find position:', posError)
+          return []
+        }
+
+        if (!position) {
+          console.warn(`[ApplicantService] Position with code ${positionCode} not found`)
+          return []
+        }
+
+        // Filter by position_id
+        query = query.eq('position_id', position.id)
       }
 
+      // Filter by qualification status
       if (qualificationStatus && qualificationStatus !== 'all') {
         query = query.eq('qualification_status', qualificationStatus)
       }
@@ -111,7 +140,7 @@ export const applicantService = {
       const { data, error } = await query
 
       if (error) throw error
-      return data
+      return data || []
     } catch (error) {
       console.error('[ApplicantService] Get all applicants failed:', error)
       throw new Error(getErrorMessage(error))
@@ -172,15 +201,33 @@ export const applicantService = {
    */
   async getQualifiedApplicants(positionCode: string) {
     try {
+      // Step 1: Get position ID from code
+      const { data: position, error: posError } = await supabase
+        .from('positions')
+        .select('id')
+        .eq('position_code', positionCode)
+        .single()
+
+      if (posError) throw posError
+      if (!position) throw new Error(`Position with code ${positionCode} not found`)
+
+      // Step 2: Query applicants by position_id with nested join
       const { data, error } = await supabase
         .from('applicants')
-        .select('*, positions!inner(position_code, position_name, company_name)')
-        .eq('positions.position_code', positionCode)
+        .select(`
+          *,
+          positions!inner(
+            position_code,
+            position_name,
+            companies(company_name)
+          )
+        `)
+        .eq('position_id', position.id)
         .eq('qualification_status', 'qualified')
         .order('score', { ascending: false })
 
       if (error) throw error
-      return data
+      return data || []
     } catch (error) {
       console.error('[ApplicantService] Get qualified applicants failed:', error)
       throw new Error(getErrorMessage(error))

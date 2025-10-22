@@ -200,6 +200,7 @@ export const clientService = {
 
   /**
    * Resend magic link invitation to client
+   * Uses Edge Function (secure server-side) instead of admin API
    */
   async resendInvitation(companyId: string) {
     try {
@@ -222,24 +223,26 @@ export const clientService = {
 
       if (hrUserError) throw hrUserError
 
-      // Resend invitation
-      const redirectUrl = `${import.meta.env.VITE_APP_URL}/client/dashboard`
-
-      const { error: inviteError } = await supabase.auth.admin.inviteUserByEmail(
-        company.primary_contact_email,
-        {
-          data: {
-            company_id: company.id,
-            company_name: company.company_name,
-            hr_user_id: hrUser.id,
-            full_name: hrUser.full_name,
-            role: 'client',
-          },
-          redirectTo: redirectUrl,
+      // Call Edge Function to resend invitation (secure server-side)
+      const { data: inviteResult, error: inviteError } = await supabase.functions.invoke('invite-client', {
+        body: {
+          email: company.primary_contact_email.toLowerCase(),
+          company_id: company.id,
+          company_name: company.company_name,
+          hr_user_id: hrUser.id,
+          full_name: hrUser.full_name,
         }
-      )
+      })
 
-      if (inviteError) throw inviteError
+      if (inviteError) {
+        console.error('[ClientService] Edge Function error:', inviteError)
+        throw new Error(`Failed to send invitation: ${inviteError.message}`)
+      }
+
+      if (!inviteResult?.success) {
+        console.error('[ClientService] Invitation failed:', inviteResult)
+        throw new Error(inviteResult?.error || 'Failed to resend magic link invitation')
+      }
 
       return {
         message: `✅ Invitación reenviada a ${company.primary_contact_email}`,
