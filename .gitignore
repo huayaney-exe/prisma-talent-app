@@ -3,6 +3,9 @@ node_modules/
 frontend/node_modules/
 backend/__pycache__/
 backend/.venv/
+backend/venv/
+backend/supabase/.temp/
+supabase/.temp/
 
 # Environment variables
 .env
