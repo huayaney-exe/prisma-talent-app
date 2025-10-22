@@ -27,11 +27,6 @@ export const supabase: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON
   db: {
     schema: 'public',
   },
-  global: {
-    headers: {
-      'x-application-name': 'prisma-talent-frontend',
-    },
-  },
 })
 
 // ============================================================================
