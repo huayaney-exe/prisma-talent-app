@@ -35,15 +35,14 @@ const SENIORITY_OPTIONS = [
 
 const CONTRACT_TYPE_OPTIONS = [
   { value: '', label: 'Selecciona tipo', disabled: true },
-  { value: 'full-time', label: 'Full-Time' },
-  { value: 'part-time', label: 'Part-Time' },
-  { value: 'contract', label: 'Contrato' },
+  { value: 'Tiempo completo', label: 'Tiempo Completo' },
+  { value: 'Part-time', label: 'Part-Time' },
 ]
 
 const POSITION_TYPE_OPTIONS = [
   { value: '', label: 'Selecciona tipo', disabled: true },
-  { value: 'new', label: 'Nueva posición (expansión)' },
-  { value: 'replacement', label: 'Reemplazo de salida' },
+  { value: 'Nueva posición', label: 'Nueva posición (expansión)' },
+  { value: 'Reemplazo', label: 'Reemplazo de salida' },
 ]
 
 // ============================================================================

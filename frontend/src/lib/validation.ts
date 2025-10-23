@@ -51,9 +51,9 @@ export const hrFormSchema = z.object({
   salary_range: z.string().min(2, 'Rango salarial requerido'),
   equity_included: z.boolean(),
   equity_details: z.string().optional(),
-  contract_type: z.enum(['full-time', 'part-time', 'contract']),
+  contract_type: z.enum(['Tiempo completo', 'Part-time']),
   target_fill_date: z.string().min(1, 'Fecha objetivo requerida'),
-  position_type: z.enum(['new', 'replacement']),
+  position_type: z.enum(['Nueva posición', 'Reemplazo']),
   critical_notes: z.string().optional(),
 })
 
