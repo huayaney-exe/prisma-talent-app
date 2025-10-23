@@ -80,6 +80,7 @@ export interface Position {
   equity_details?: string
   contract_type: ContractType
   target_fill_date: string
+  timeline: string // Database column name (same as target_fill_date)
   position_type: PositionType
   critical_notes?: string
   work_arrangement?: string
@@ -92,6 +93,7 @@ export interface Position {
   success_kpi?: string
   area_specific_data?: Record<string, any>
   job_description_content?: string
+  created_by?: string | null // hr_user.id who created this position (nullable for public forms)
   created_at: string
   updated_at: string
 }
