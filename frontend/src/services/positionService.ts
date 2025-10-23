@@ -65,14 +65,26 @@ El Business Leader completará las especificaciones técnicas, contexto del equi
  */
 async function generateInitialJobDescription(position: Position): Promise<void> {
   try {
+    console.log('[PositionService] 📝 Starting job description generation for position:', position.id)
+
     // Get company name
-    const { data: company } = await supabase
+    const { data: company, error: companyError } = await supabase
       .from('companies')
       .select('company_name')
       .eq('id', position.company_id)
       .single()
 
-    if (!company) throw new Error('Company not found')
+    if (companyError) {
+      console.error('[PositionService] ❌ Failed to fetch company:', companyError)
+      throw new Error(`Failed to fetch company: ${companyError.message}`)
+    }
+
+    if (!company) {
+      console.error('[PositionService] ❌ Company not found for id:', position.company_id)
+      throw new Error('Company not found')
+    }
+
+    console.log('[PositionService] ✅ Company found:', company.company_name)
 
     // Build job description from template
     const jobDescriptionContent = buildJobDescriptionTemplate({
@@ -89,29 +101,66 @@ async function generateInitialJobDescription(position: Position): Promise<void> 
       critical_notes: position.critical_notes || undefined,
     })
 
+    console.log('[PositionService] ✅ Job description template built, length:', jobDescriptionContent.length)
+
     // Insert into job_descriptions table
-    const { error } = await supabase
+    const insertPayload = {
+      company_id: position.company_id,
+      position_id: position.id,
+      generated_content: jobDescriptionContent,
+      generation_prompt: 'Template-based from HR form data',
+      generation_model: 'template-v1',
+      version_number: 1,
+      is_current_version: true,
+      created_by: position.created_by,
+    }
+
+    console.log('[PositionService] 🔄 Attempting to insert job description with payload:', {
+      company_id: insertPayload.company_id,
+      position_id: insertPayload.position_id,
+      created_by: insertPayload.created_by,
+      content_length: insertPayload.generated_content.length,
+    })
+
+    const { data: insertedJD, error } = await supabase
       .from('job_descriptions')
-      .insert({
-        company_id: position.company_id,
-        position_id: position.id,
-        generated_content: jobDescriptionContent,
-        generation_prompt: 'Template-based from HR form data',
-        generation_model: 'template-v1',
-        version_number: 1,
-        is_current_version: true,
-        created_by: position.created_by,
-      })
+      .insert(insertPayload)
+      .select()
 
     if (error) {
-      console.error('[PositionService] Failed to create job description:', error)
+      console.error('[PositionService] ❌ ❌ ❌ FAILED to create job description ❌ ❌ ❌')
+      console.error('[PositionService] Error code:', error.code)
+      console.error('[PositionService] Error message:', error.message)
+      console.error('[PositionService] Error details:', error.details)
+      console.error('[PositionService] Error hint:', error.hint)
+      console.error('[PositionService] Full error object:', JSON.stringify(error, null, 2))
+
+      // Log RLS-specific debugging info
+      console.error('[PositionService] 🔍 RLS Debugging Info:')
+      console.error('  - Position ID:', position.id)
+      console.error('  - Company ID:', position.company_id)
+      console.error('  - Created by:', position.created_by)
+
+      // Get current user auth info
+      const { data: { session } } = await supabase.auth.getSession()
+      console.error('  - Current auth.uid():', session?.user?.id)
+      console.error('  - Current user email:', session?.user?.email)
+
       // Don't throw - job description generation is secondary to position creation
+      // But make the error VERY visible
+      alert(`⚠️ Position created but job description failed!\n\nError: ${error.message}\n\nCode: ${error.code}\n\nCheck browser console for full details.`)
     } else {
-      console.log('[PositionService] Job description created successfully for position:', position.id)
+      console.log('[PositionService] ✅ ✅ ✅ Job description created successfully! ✅ ✅ ✅')
+      console.log('[PositionService] Inserted JD ID:', insertedJD?.[0]?.id || 'N/A')
     }
   } catch (error) {
-    console.error('[PositionService] Error generating job description:', error)
-    // Don't throw - position creation should succeed even if JD fails
+    console.error('[PositionService] ❌ ❌ ❌ EXCEPTION during job description generation ❌ ❌ ❌')
+    console.error('[PositionService] Exception type:', error instanceof Error ? 'Error' : typeof error)
+    console.error('[PositionService] Exception:', error)
+
+    // Make exception visible
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    alert(`⚠️ Position created but job description threw exception!\n\nError: ${errorMessage}\n\nCheck browser console for full details.`)
   }
 }
 
