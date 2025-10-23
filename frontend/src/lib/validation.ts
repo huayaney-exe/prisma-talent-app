@@ -43,8 +43,8 @@ export const leadSchema = z
 
 export const hrFormSchema = z.object({
   position_name: z.string().min(2, 'Nombre de posición requerido'),
-  area: z.enum(['product-management', 'engineering-tech', 'growth', 'design']),
-  seniority: z.enum(['mid-level', 'senior', 'lead-staff', 'director+']),
+  area: z.enum(['Product Management', 'Engineering-Tech', 'Growth', 'Design']),
+  seniority: z.enum(['Mid-level 3-5 años', 'Senior 5-8 años', 'Lead-Staff 8+ años', 'Director+ 10+ años']),
   business_user_name: z.string().min(2, 'Nombre del líder requerido'),
   business_user_position: z.string().min(2, 'Posición del líder requerida'),
   business_user_email: z.string().email('Email del líder inválido'),

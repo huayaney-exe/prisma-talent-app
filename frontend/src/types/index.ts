@@ -12,8 +12,8 @@ export type WorkMode = 'remote' | 'hybrid' | 'onsite'
 export type Urgency = 'immediate' | '1-2-weeks' | '1-month+' | 'not-urgent'
 export type CompanySize = '1-10' | '11-50' | '51-200' | '201-1000' | '1000+'
 
-export type Area = 'product-management' | 'engineering-tech' | 'growth' | 'design'
-export type Seniority = 'mid-level' | 'senior' | 'lead-staff' | 'director+'
+export type Area = 'Product Management' | 'Engineering-Tech' | 'Growth' | 'Design'
+export type Seniority = 'Mid-level 3-5 años' | 'Senior 5-8 años' | 'Lead-Staff 8+ años' | 'Director+ 10+ años'
 export type ContractType = 'full-time' | 'part-time' | 'contract'
 export type PositionType = 'new' | 'replacement'
 

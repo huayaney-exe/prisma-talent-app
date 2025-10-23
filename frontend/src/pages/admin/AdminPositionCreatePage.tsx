@@ -19,18 +19,18 @@ import type { HRFormData, Area, Seniority, ContractType, PositionType } from '@/
 
 const AREA_OPTIONS = [
   { value: '', label: 'Selecciona área', disabled: true },
-  { value: 'product-management', label: 'Product Management' },
-  { value: 'engineering-tech', label: 'Engineering & Tech' },
-  { value: 'growth', label: 'Growth' },
-  { value: 'design', label: 'Design' },
+  { value: 'Product Management', label: 'Product Management' },
+  { value: 'Engineering-Tech', label: 'Engineering & Tech' },
+  { value: 'Growth', label: 'Growth' },
+  { value: 'Design', label: 'Design' },
 ]
 
 const SENIORITY_OPTIONS = [
   { value: '', label: 'Selecciona seniority', disabled: true },
-  { value: 'mid-level', label: 'Mid-Level' },
-  { value: 'senior', label: 'Senior' },
-  { value: 'lead-staff', label: 'Lead/Staff' },
-  { value: 'director+', label: 'Director+' },
+  { value: 'Mid-level 3-5 años', label: 'Mid-Level (3-5 años)' },
+  { value: 'Senior 5-8 años', label: 'Senior (5-8 años)' },
+  { value: 'Lead-Staff 8+ años', label: 'Lead/Staff (8+ años)' },
+  { value: 'Director+ 10+ años', label: 'Director+ (10+ años)' },
 ]
 
 const CONTRACT_TYPE_OPTIONS = [
