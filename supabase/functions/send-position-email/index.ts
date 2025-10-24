@@ -6,7 +6,7 @@
  * Follows same pattern as invite-client Edge Function.
  *
  * Usage: POST /functions/v1/send-position-email
- * Body: { email_id: "uuid" }
+ * Body: { position_id: "uuid", company_id: "uuid" }
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
@@ -18,26 +18,22 @@ const corsHeaders = {
 }
 
 interface SendEmailRequest {
-  email_id: string
+  position_id: string
+  company_id: string
 }
 
-interface EmailRecord {
+interface Position {
   id: string
+  position_name: string
+  position_code: string
   company_id: string
-  position_id: string
-  email_type: string
-  recipient_email: string
-  recipient_name: string
-  subject_line: string
-  email_content: string
-  template_data: {
-    leader_name?: string
-    company_name?: string
-    position_name?: string
-    position_code?: string
-    form_url?: string
-    [key: string]: any
-  }
+}
+
+interface Company {
+  id: string
+  company_name: string
+  business_leader_email: string
+  business_leader_name: string
 }
 
 serve(async (req) => {
@@ -48,16 +44,17 @@ serve(async (req) => {
 
   try {
     // Get request body
-    const { email_id }: SendEmailRequest = await req.json()
+    const { position_id, company_id }: SendEmailRequest = await req.json()
 
-    if (!email_id) {
+    // Validate required fields
+    if (!position_id || !company_id) {
       return new Response(
-        JSON.stringify({ error: 'Missing email_id' }),
+        JSON.stringify({ error: 'Missing required fields: position_id and company_id' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Create Supabase admin client
+    // Create Supabase admin client (has service_role_key from environment)
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -69,20 +66,39 @@ serve(async (req) => {
       }
     )
 
-    // Fetch email record from database
-    const { data: emailRecord, error: fetchError } = await supabaseAdmin
-      .from('email_communications')
-      .select('*')
-      .eq('id', email_id)
-      .is('sent_at', null)
-      .single<EmailRecord>()
+    // Fetch position details
+    const { data: position, error: positionError } = await supabaseAdmin
+      .from('positions')
+      .select('id, position_name, position_code, company_id')
+      .eq('id', position_id)
+      .single<Position>()
 
-    if (fetchError || !emailRecord) {
+    if (positionError || !position) {
+      console.error('Position not found:', positionError)
       return new Response(
-        JSON.stringify({ error: 'Email record not found or already sent' }),
+        JSON.stringify({ error: 'Position not found' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+
+    // Fetch company details
+    const { data: company, error: companyError } = await supabaseAdmin
+      .from('companies')
+      .select('id, company_name, business_leader_email, business_leader_name')
+      .eq('id', company_id)
+      .single<Company>()
+
+    if (companyError || !company) {
+      console.error('Company not found:', companyError)
+      return new Response(
+        JSON.stringify({ error: 'Company not found' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Frontend URL from environment or default
+    const frontendUrl = Deno.env.get('FRONTEND_URL') || 'https://talent-platform.vercel.app'
+    const formUrl = `${frontendUrl}/business-leader/positions/${position.id}`
 
     // Get Resend API key from vault
     const { data: secretData, error: secretError } = await supabaseAdmin
@@ -98,33 +114,26 @@ serve(async (req) => {
 
     const resendApiKey = secretData
 
-    // Build email body based on email_type
-    let emailBody: string
+    // Build email body
+    const emailBody = `Hola ${company.business_leader_name},
 
-    switch (emailRecord.email_type) {
-      case 'leader_form_request':
-        emailBody = `Hola ${emailRecord.template_data.leader_name},
+El equipo de HR ha iniciado el proceso de apertura para la siguiente posición en ${company.company_name}:
 
-El equipo de HR ha iniciado el proceso de apertura para la siguiente posición en ${emailRecord.template_data.company_name}:
-
-Posición: ${emailRecord.template_data.position_name}
-Código: ${emailRecord.template_data.position_code}
+Posición: ${position.position_name}
+Código: ${position.position_code}
 
 Tu input es necesario para continuar.
 
 Por favor completa las especificaciones técnicas y contexto del equipo:
-${emailRecord.template_data.form_url}
+${formUrl}
 
 El formulario toma aproximadamente 10 minutos en completarse.
 
 Saludos,
 Prisma Talent
 Community-driven talent acquisition`
-        break
 
-      default:
-        emailBody = emailRecord.email_content
-    }
+    const subjectLine = `Acción Requerida: Nueva Posición ${position.position_name} en ${company.company_name}`
 
     // Send email via Resend API
     const resendResponse = await fetch('https://api.resend.com/emails', {
@@ -135,8 +144,8 @@ Community-driven talent acquisition`
       },
       body: JSON.stringify({
         from: 'Prisma Talent <noreply@luishuayaney.com>',
-        to: emailRecord.recipient_email,
-        subject: emailRecord.subject_line,
+        to: company.business_leader_email,
+        subject: subjectLine,
         text: emailBody,
         reply_to: 'luis@luishuayaney.com',
       }),
@@ -147,39 +156,65 @@ Community-driven talent acquisition`
     if (!resendResponse.ok) {
       console.error('Resend API error:', resendData)
 
-      // Update email record with error
+      // Track failed email in database
       await supabaseAdmin
         .from('email_communications')
-        .update({
-          retry_count: (emailRecord as any).retry_count ? (emailRecord as any).retry_count + 1 : 1,
-          last_error: `HTTP ${resendResponse.status}: ${JSON.stringify(resendData)}`,
+        .insert({
+          company_id: company.id,
+          position_id: position.id,
+          email_type: 'leader_form_request',
+          recipient_email: company.business_leader_email,
+          recipient_name: company.business_leader_name,
+          subject_line: subjectLine,
+          email_content: emailBody,
+          template_data: {
+            leader_name: company.business_leader_name,
+            company_name: company.company_name,
+            position_name: position.position_name,
+            position_code: position.position_code,
+            form_url: formUrl,
+          },
           status: 'failed',
+          last_error: `HTTP ${resendResponse.status}: ${JSON.stringify(resendData)}`,
         })
-        .eq('id', email_id)
 
       return new Response(
-        JSON.stringify({ error: `Resend API error: ${resendData.message}` }),
+        JSON.stringify({ error: `Resend API error: ${resendData.message || 'Unknown error'}` }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Update email record as sent
+    // Track successful email in database
     await supabaseAdmin
       .from('email_communications')
-      .update({
+      .insert({
+        company_id: company.id,
+        position_id: position.id,
+        email_type: 'leader_form_request',
+        recipient_email: company.business_leader_email,
+        recipient_name: company.business_leader_name,
+        subject_line: subjectLine,
+        email_content: emailBody,
+        template_data: {
+          leader_name: company.business_leader_name,
+          company_name: company.company_name,
+          position_name: position.position_name,
+          position_code: position.position_code,
+          form_url: formUrl,
+        },
         sent_at: new Date().toISOString(),
         status: 'sent',
         resend_email_id: resendData.id,
       })
-      .eq('id', email_id)
 
-    console.log(`✅ Email sent successfully to ${emailRecord.recipient_email}`)
+    console.log(`✅ Email sent successfully to ${company.business_leader_email}`)
 
     return new Response(
       JSON.stringify({
         success: true,
         resend_email_id: resendData.id,
-        recipient: emailRecord.recipient_email,
+        recipient: company.business_leader_email,
+        message: `Email sent successfully to ${company.business_leader_name}`,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )

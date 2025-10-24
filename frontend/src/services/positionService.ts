@@ -225,12 +225,16 @@ export const positionService = {
         createdBy = hrUser?.id || null
       }
 
-      // 4. INSERT position as 'hr_draft' (first step of two-step workflow)
-      const { data: draftPosition, error: insertError } = await supabase
+      // 4. Generate position code
+      const positionCode = `${data.area.substring(0, 3).toUpperCase()}-${Date.now()}`
+
+      // 5. INSERT position as 'hr_completed' (single-step, no draft needed)
+      const { data: position, error: insertError } = await supabase
         .from('positions')
         .insert({
           company_id: finalCompanyId,
           position_name: data.position_name,
+          position_code: positionCode,
           area: data.area,
           seniority: data.seniority,
           leader_name: data.business_user_name,
@@ -243,7 +247,8 @@ export const positionService = {
           timeline: data.target_fill_date,
           position_type: data.position_type,
           critical_notes: data.critical_notes,
-          workflow_stage: 'hr_draft', // Start as draft
+          workflow_stage: 'hr_completed', // Start as completed (HR part done)
+          hr_completed_at: new Date().toISOString(),
           created_by: createdBy,
         })
         .select()
@@ -251,21 +256,34 @@ export const positionService = {
 
       if (insertError) throw insertError
 
-      // 5. UPDATE to 'hr_completed' (triggers email notification via database trigger)
-      const { data: position, error: updateError } = await supabase
-        .from('positions')
-        .update({
-          workflow_stage: 'hr_completed',
-          hr_completed_at: new Date().toISOString(),
-        })
-        .eq('id', draftPosition.id)
-        .select()
-        .single()
-
-      if (updateError) throw updateError
+      console.log('[PositionService] ✅ Position created:', position.id)
 
       // 6. Generate initial job description from HR data (template-based, no AI)
       await generateInitialJobDescription(position as Position)
+
+      // 7. Send email notification to business leader via Edge Function
+      console.log('[PositionService] 📧 Sending email notification via Edge Function')
+      const { data: emailResult, error: emailError } = await supabase.functions.invoke('send-position-email', {
+        body: {
+          position_id: position.id,
+          company_id: finalCompanyId,
+        }
+      })
+
+      if (emailError) {
+        console.error('[PositionService] ⚠️ Email notification failed:', emailError)
+        // Don't throw - position was created successfully, email failure is non-critical
+        // User will see warning in console but position creation succeeds
+      } else if (emailResult?.success) {
+        console.log('[PositionService] ✅ Email notification sent:', emailResult.message)
+        // Update position to 'leader_notified' status
+        await supabase
+          .from('positions')
+          .update({ workflow_stage: 'leader_notified' })
+          .eq('id', position.id)
+      } else {
+        console.error('[PositionService] ⚠️ Email notification failed:', emailResult?.error)
+      }
 
       return position as Position
     } catch (error) {
